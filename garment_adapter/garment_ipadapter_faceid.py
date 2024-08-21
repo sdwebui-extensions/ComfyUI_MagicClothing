@@ -149,7 +149,10 @@ class IPAdapterFaceID:
         self.attn_store = {}
 
     def set_insightface(self):
-        self.app = FaceAnalysis(name="buffalo_l", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+        if os.path.exists("/stable-diffusion-cache/models/annotator/insightface"):
+            self.app = FaceAnalysis(name="buffalo_l", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'], root="/stable-diffusion-cache/models/annotator/insightface")
+        else:
+            self.app = FaceAnalysis(name="buffalo_l", providers=['CUDAExecutionProvider', 'CPUExecutionProvider'], root=os.path.join(folder_paths.models_dir, "insightface"))
         self.app.prepare(ctx_id=0, det_size=(640, 640))
 
     def set_seg_model(self, ):
