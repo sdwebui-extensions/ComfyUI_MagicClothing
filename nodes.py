@@ -30,13 +30,12 @@ if os.path.exists(f"{cache_dir}/control_v11p_sd15_inpaint"):
 
 folder_paths.folder_names_and_paths["magic_cloth_checkpoint"] = (
     [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints'), cache_dir, os.path.join(folder_paths.models_dir, 'magic_cloth_checkpoint'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints'), os.path.join(cache_dir, "checkpoints"), os.path.join(folder_paths.models_dir, 'magic_cloth_checkpoint/checkpoints'),
     ],
     [".safetensors"]
 )
 
 checkpoints_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints')
-ipadapter_faceid_path = os.path.join(checkpoints_path, 'ipadapter_faceid')
 
 def find_safetensors_files(directory):
     safetensors_files = [
@@ -62,7 +61,7 @@ class ClothInpainting:
             "required": {
                 "cloth_image": ("IMAGE",),
                 "cloth_mask_image": ("IMAGE", ),
-                "model_path": (find_safetensors_files(checkpoints_path),),
+                "model_path": (folder_paths.get_filename_list("magic_cloth_checkpoint"),),
                 "prompt": ("STRING", {"default": "a photography of a model"}),
                 "pipe_path": (pipe_path,),
                 "enable_cloth_guidance": ("BOOLEAN", {"default": True}),
