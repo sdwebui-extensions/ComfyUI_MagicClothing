@@ -124,7 +124,7 @@ class AnimatediffGenerate:
             "required": {
                 "cloth_image": ("IMAGE",),
                 "prompt": ("STRING", {"default": "a photography of a model"}),
-                "model_path": (find_safetensors_files(checkpoints_path),),
+                "model_path": (folder_paths.get_filename_list("magic_cloth_checkpoint"),),
                 "pipe_path": (pipe_path,),
                 "motion_adapter_path": (motion_adapter_path,),
             },
@@ -174,7 +174,7 @@ class GarmentGenerate:
             "required": {
                 "cloth_image": ("IMAGE",),
                 "prompt": ("STRING", {"default": "a photography of a model"}),
-                "model_path": (find_safetensors_files(checkpoints_path),),
+                "model_path": (folder_paths.get_filename_list("magic_cloth_checkpoint"),),
                 "pipe_path": (pipe_path,),
                 "enable_cloth_guidance": ("BOOLEAN", {"default": True}),
             },
