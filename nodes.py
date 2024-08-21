@@ -17,9 +17,20 @@ pipe_path = ["SG161222/Realistic_Vision_V4.0_noVAE", "Lykon/dreamshaper-8", "red
 motion_adapter_path = ['guoyww/animatediff-motion-adapter-v1-5-2']
 faceid_version = ['FaceID', 'FaceIDPlus', 'FaceIDPlusV2']
 
+cache_dir = '/stable-diffusion-cache/models/magic_cloth_checkpoint'
+vae_folder = "stabilityai/sd-vae-ft-mse"
+cn_inpaint_folder = "lllyasviel/control_v11p_sd15_inpaint"
+cn_openpose_folder = "lllyasviel/control_v11p_sd15_openpose"
+image_encoder_path = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
+if os.path.exists(f"{cache_dir}/control_v11p_sd15_inpaint"):
+    cn_inpaint_folder = f"{cache_dir}/control_v11p_sd15_inpaint"
+    cn_openpose_folder = f"{cache_dir}/control_v11p_sd15_openpose"
+    vae_folder = f"{cache_dir}/sd-vae-ft-mse"
+    image_encoder_path = f"{cache_dir}/CLIP-ViT-H-14-laion2B-s32B-b79K"
+
 folder_paths.folder_names_and_paths["magic_cloth_checkpoint"] = (
     [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoints'), cache_dir, os.path.join(folder_paths.models_dir, 'magic_cloth_checkpoint'),
     ],
     [".safetensors"]
 )
@@ -77,8 +88,10 @@ class ClothInpainting:
     FUNCTION = "cloth_inpainting"
     
     def cloth_inpainting(self, **kwargs):    
-        control_net_inpaint = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_inpaint", torch_dtype=torch.float16)
-        vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(dtype=torch.float16)
+        if os.path.exists(f"{cache_dir}/control_v11p_sd15_inpaint"):
+            kwargs['pipe_path'] = f"{cache_dir}/{kwargs['pipe_path'].split('/')[-1]}"
+        control_net_inpaint = ControlNetModel.from_pretrained(cn_inpaint_folder, torch_dtype=torch.float16)
+        vae = AutoencoderKL.from_pretrained(vae_folder).to(dtype=torch.float16)
         pipe = VirtualTryOnPipeline.from_pretrained(kwargs['pipe_path'], vae=vae, controlnet=control_net_inpaint, torch_dtype=torch.float16)
         pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
         full_net = ClothAdapter(pipe, folder_paths.get_full_path("magic_cloth_checkpoint", kwargs['model_path']), device, kwargs['enable_cloth_guidance'], False)    
@@ -138,7 +151,7 @@ class AnimatediffGenerate:
         numpy_image = torch.squeeze(kwargs['cloth_image'], 0)
         numpy_image = (numpy_image.numpy() * 255).astype(np.uint8)
         cloth_image = Image.fromarray(numpy_image)
-        vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(dtype=torch.float16)
+        vae = AutoencoderKL.from_pretrained(vae_folder).to(dtype=torch.float16)
         adapter = MotionAdapter.from_pretrained(kwargs['motion_adapter_path'], torch_dtype=torch.float16)
         pipe = OmsAnimateDiffusionPipeline.from_pretrained(kwargs['pipe_path'], vae=vae, motion_adapter=adapter, torch_dtype=torch.float16)
         scheduler = DDIMScheduler.from_pretrained(kwargs['pipe_path'], subfolder="scheduler", clip_sample=False, timestep_spacing="linspace", beta_schedule="linear", steps_offset=1,)
@@ -189,7 +202,7 @@ class GarmentGenerate:
     FUNCTION = "garment_generation"
     
     def garment_generation(self, cloth_image, prompt, model_path, pipe_path, enable_cloth_guidance, num_samples, n_prompt, seed, scale, cloth_guidance_scale, sample_steps, height, width, faceid_version, cloth_mask_image=None, face_image=None, pose_image=None):
-        vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(dtype=torch.float16)
+        vae = AutoencoderKL.from_pretrained(vae_folder).to(dtype=torch.float16)
         a_prompt = 'best quality, high quality'
         numpy_image = torch.squeeze(cloth_image, 0)
         numpy_image = (numpy_image.numpy() * 255).astype(np.uint8)
@@ -226,7 +239,6 @@ class GarmentGenerate:
 
                 pipe.load_lora_weights(ip_lora)
                 pipe.fuse_lora()
-                image_encoder_path = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
                 from .garment_adapter.garment_ipadapter_faceid import IPAdapterFaceIDPlus as IPAdapterFaceID
 
                 ip_model = IPAdapterFaceID(pipe, folder_paths.get_full_path("magic_cloth_checkpoint", model_path), image_encoder_path, ip_ckpt, device, enable_cloth_guidance)
@@ -244,7 +256,7 @@ class GarmentGenerate:
             #from controlnet_aux import OpenposeDetector    
             from diffusers import ControlNetModel  
             #openpose_model = OpenposeDetector.from_pretrained("lllyasviel/ControlNet").to(device)
-            control_net_openpose = ControlNetModel.from_pretrained("lllyasviel/control_v11p_sd15_openpose", torch_dtype=torch.float16)
+            control_net_openpose = ControlNetModel.from_pretrained(cn_openpose_folder, torch_dtype=torch.float16)
             if enable_cloth_guidance:
                 pipe = OmsDiffusionControlNetPipeline.from_pretrained(pipe_path, vae=vae, controlnet=control_net_openpose, torch_dtype=torch.float16)
             else:
@@ -279,7 +291,6 @@ class GarmentGenerate:
 
                 pipe.load_lora_weights(ip_lora)
                 pipe.fuse_lora()
-                image_encoder_path = "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
                 from .garment_adapter.garment_ipadapter_faceid import IPAdapterFaceIDPlus as IPAdapterFaceID
 
                 ip_model = IPAdapterFaceID(pipe, folder_paths.get_full_path("magic_cloth_checkpoint", model_path), image_encoder_path, ip_ckpt, device, enable_cloth_guidance)
