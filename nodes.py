@@ -147,6 +147,10 @@ class AnimatediffGenerate:
     FUNCTION = "animatediff_generation"
     
     def animatediff_generation(self, **kwargs):
+        if os.path.exists(cache_dir):
+            pipe_path = os.path.join(cache_dir, kwargs['pipe_path'].split('/')[-1])
+            if os.path.exists(pipe_path):
+                kwargs['pipe_path'] = pipe_path
         numpy_image = torch.squeeze(kwargs['cloth_image'], 0)
         numpy_image = (numpy_image.numpy() * 255).astype(np.uint8)
         cloth_image = Image.fromarray(numpy_image)
@@ -202,6 +206,8 @@ class GarmentGenerate:
     
     def garment_generation(self, cloth_image, prompt, model_path, pipe_path, enable_cloth_guidance, num_samples, n_prompt, seed, scale, cloth_guidance_scale, sample_steps, height, width, faceid_version, cloth_mask_image=None, face_image=None, pose_image=None):
         vae = AutoencoderKL.from_pretrained(vae_folder).to(dtype=torch.float16)
+        if os.path.exists(cache_dir):
+            pipe_path = os.path.join(cache_dir, pipe_path.split('/')[-1])
         a_prompt = 'best quality, high quality'
         numpy_image = torch.squeeze(cloth_image, 0)
         numpy_image = (numpy_image.numpy() * 255).astype(np.uint8)
